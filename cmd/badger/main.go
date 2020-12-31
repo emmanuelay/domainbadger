@@ -24,11 +24,14 @@ func domains(combos []string, tlds []string) []string {
 }
 
 func main() {
+	// TODO(ea): get config from commandline arguments
+	// TODO(ea): run generation of unique combinations
+	// TODO(ea): run generation of domains to check
+	// TODO(ea): run whoislookups
+	// TODO(ea): compile and display results
+}
 
-	// TODO(ea): Move tlds to cli flag
-	// TODO(ea): Move character range to cli flag
-	// TODO(ea): Move search string to cli flag
-
+func search() {
 	tlds := []string{"nu", "se"}
 	alpha := "aoueiyåäö"
 	inputSearch := "a*"
