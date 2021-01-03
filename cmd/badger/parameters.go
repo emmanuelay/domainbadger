@@ -9,6 +9,7 @@ import (
 	"github.com/zonedb/zonedb"
 )
 
+// Configuration ...
 type Configuration struct {
 	AllCharacters  bool
 	Alpha          bool
@@ -19,10 +20,16 @@ type Configuration struct {
 }
 
 func validateDomain(domain string) bool {
-	// TODO(ea): Implement check for alphanumeric characters including dash (-),
-	// no spaces, min length of 2 and a max length of 63
-	r := regexp.MustCompile("[a-z0-9-]{1,63}")
-	return r.Match([]byte(domain))
+	// This only validates the domain name, not the tld
+	// Checks for alphanumeric characters including dash (-)
+	// no spaces, min length of 1 and a max length of 63
+
+	// RegEx explanation:
+	// - 1st char only alphanumeric
+	// - Subsequent chars (min 0, max 61) alphanumeric and dash
+	// - Last char only alphanumeric
+	r := regexp.MustCompile("(^[a-z0-9])([a-z0-9-]{0,61})(?:[a-z0-9])$")
+	return r.MatchString(domain)
 }
 
 func validateArguments() error {
