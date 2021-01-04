@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"regexp"
@@ -14,12 +15,14 @@ type Configuration struct {
 	AllCharacters  bool
 	Alpha          bool
 	AlphaNumeric   bool
+	Numeric        bool
 	CustomRange    string
+	Delay          int64
 	TLD            []string
 	SearchPatterns []string
 }
 
-func validateDomain(domain string) bool {
+func isValidDomain(domain string) bool {
 	// This only validates the domain name, not the tld
 	// Checks for alphanumeric characters including dash (-)
 	// no spaces, min length of 1 and a max length of 63
@@ -32,8 +35,23 @@ func validateDomain(domain string) bool {
 	return r.MatchString(domain)
 }
 
-func validateArguments() error {
-	config := getConfigurationFromArguments()
+func isValidTLD(tld string) bool {
+	r := regexp.MustCompile("(^[a-z]{2,16})$")
+	return r.MatchString(tld)
+}
+
+func isValidRange(customRange string) bool {
+	r := regexp.MustCompile("([a-z0-9-]{1,60})$")
+	return r.MatchString(customRange)
+}
+
+func countWildcards(search string) int {
+	wildcardFind := regexp.MustCompile("\\_")
+	matches := wildcardFind.FindAllStringIndex(search, -1)
+	return len(matches)
+}
+
+func validateArguments(config Configuration) error {
 
 	if config.AllCharacters {
 		config.Alpha = false
@@ -48,32 +66,55 @@ func validateArguments() error {
 		config.Alpha = false
 		config.AlphaNumeric = false
 		config.AllCharacters = false
-	}
 
-	// TODO(ea): check custom range for invalid characters
-
-	// Make sure TLDs have a corresponding nameserver
-	for _, tld := range config.TLD {
-		zone := zonedb.PublicZone(tld)
-		if zone == nil {
-			return fmt.Errorf("Invalid TLD specified: %v", tld)
+		// Check custom range for invalid characters
+		if isValidRange(config.CustomRange) != true {
+			return fmt.Errorf("Invalid custom characters specified: '%v'", config.CustomRange)
 		}
 	}
 
-	// TODO(ea): check searchpatterns for wildcard character (underscore)
-	// TODO(ea): check searchpatterns for invalid characters
+	// Make sure TLDs have a corresponding nameserver
+	for _, tld := range config.TLD {
+
+		if !isValidTLD(tld) {
+			return fmt.Errorf("Invalid format TLD: '%v'", tld)
+		}
+
+		if zone := zonedb.PublicZone(tld); zone == nil {
+			return fmt.Errorf("Invalid TLD specified: '%v'", tld)
+		}
+	}
+
+	if len(config.SearchPatterns) == 0 {
+		return errors.New("No search patterns provided")
+	}
+
+	// Check searchpatterns for wildcard character (underscore)
+	// and invalid characters
+	for _, search := range config.SearchPatterns {
+		if count := countWildcards(search); count == 0 {
+			return fmt.Errorf("Invalid search pattern, no wildcards found: '%v", search)
+		}
+
+		clean := strings.ReplaceAll(search, "_", "")
+		if len(clean) > 1 && !isValidDomain(clean) {
+			return fmt.Errorf("Invalid search pattern, invalid domain: '%v", search)
+		}
+	}
 
 	return nil
 }
 
-func getConfigurationFromArguments() Configuration {
+func getConfigurationFromArguments() (Configuration, error) {
 
 	config := Configuration{}
 
 	flag.BoolVar(&config.AllCharacters, "all", true, "Use all possible characters (a-z, 0-9, -)")
 	flag.BoolVar(&config.Alpha, "alpha", false, "Use alphabetic range (a-z)")
 	flag.BoolVar(&config.AlphaNumeric, "alphanum", false, "Use alphanumeric range (a-z, 0-9)")
+	flag.BoolVar(&config.Numeric, "numeric", false, "Use numeric range (0-9)")
 	flag.StringVar(&config.CustomRange, "custom", "", "Use a custom character range (ex. abc123)")
+	flag.Int64Var(&config.Delay, "delay", 500, "Delay between lookup attempts, in milliseconds")
 
 	var tlds string
 	flag.StringVar(&tlds, "tld", "com", "TLDs to search. Use comma to add multiple (ex. com,org,net)")
@@ -84,5 +125,5 @@ func getConfigurationFromArguments() Configuration {
 
 	config.SearchPatterns = flag.Args() // Search mask to use (ex. 'se_rchm_sk' to use 2 wildcard ranges)
 
-	return config
+	return config, validateArguments(config)
 }
