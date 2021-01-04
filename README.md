@@ -8,17 +8,20 @@ This is an experimental tool used to find unregistered domains using wildcards &
 	badger <flags> [searchterms]
 
 	-alpha
-		Alphabetic search
+		Alphabetic search (a-z)
 
 	-alphanum
-		Alphanumeric search
+		Alphanumeric search (a-z, 0-9)
+
+	-numeric
+		Numeric search (0-9)
 
 	-custom [character set]
 		Custom character set search (limited to a-z,0-9 and -)
 		
 	-tld [comma-separated list of top-level domains]
 		Top-level domains
-		
+
 	-delay
 		Delay in milliseconds
 ```
@@ -43,6 +46,7 @@ But, when you're looking at multiple wildcards using a wider range of characters
 |-|-|-|
 |alpha|Use alphabetic characters (a-z)|```badger -alpha```|
 |alphanum|Use alphanumeric characters (a-z, 0-9)|```badger -alphanum```|
+|numeric|Use numeric characters (0-9)|```badger -numeric```|
 |custom|Use custom characters|```badger -custom abc123```|
 |tld|List with top-level domains should be searched|```badger -tld se,dk,no```|
 |delay|Delay in milliseconds between whois lookups|```badger -delay 500```|
