@@ -18,6 +18,7 @@ This is an experimental tool used to find unregistered domains using wildcards &
 		
 	-tld [comma-separated list of top-level domains]
 		Top-level domains
+		
 	-delay
 		Delay in milliseconds
 ```
