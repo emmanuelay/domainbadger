@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"regexp"
+	"os"
 	"strings"
 	"time"
 
@@ -23,59 +23,97 @@ func domains(combos []string, tlds []string) []string {
 	return out
 }
 
+const (
+	alphabet = "abcdefghijklmnopqrstuvwxyz"
+	numerals = "0123456789"
+	all      = alphabet + numerals
+)
+
 func main() {
-	// TODO(ea): get config from commandline arguments
-	// TODO(ea): run generation of unique combinations
-	// TODO(ea): run generation of domains to check
-	// TODO(ea): run whoislookups
-	// TODO(ea): compile and display results
+	// Get config from commandline arguments
+	cfg, err := getConfigurationFromArguments()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+
+	alpha := ""
+
+	if len(cfg.CustomRange) > 0 {
+		alpha = cfg.CustomRange
+	} else {
+		if cfg.Alpha {
+			alpha = alphabet
+		}
+		if cfg.AlphaNumeric {
+			alpha = all
+		}
+		if cfg.Numeric {
+			alpha = numerals
+		}
+	}
+
+	for _, search := range cfg.SearchPatterns {
+		fmt.Println("Performing generation for:", search)
+		count := countWildcards(search)
+		searchPattern := strings.ReplaceAll(search, "_", "%v")
+
+		alphaSet := []rune(alpha)
+
+		// Run generation of unique combinations
+		uniqueCombinations := combinations.Generate(alphaSet, searchPattern, count)
+		fmt.Println(len(uniqueCombinations), "domain name combinations generated")
+
+		// Run generation of domains to check
+		domains := domains(uniqueCombinations, cfg.TLD)
+		fmt.Println(len(domains), "url combinations generated")
+
+		// run whoislookups
+		for _, domain := range domains {
+
+			lookupDomain(domain)
+
+			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond)
+		}
+
+		// TODO(ea): compile and display results nicely
+		fmt.Println(" ")
+	}
+
 }
 
-func search() {
-	tlds := []string{"nu", "se"}
-	alpha := "aoueiyåäö"
-	inputSearch := "a*"
-	starFind := regexp.MustCompile("\\*")
-	matches := starFind.FindAllStringIndex(inputSearch, -1)
-	fmt.Println(len(matches), "wildcards used")
-	wildcardCount := len(matches)
+func lookupDomain(domain string) {
 
-	search := strings.ReplaceAll(inputSearch, "*", "%v")
+	response, err := whois.Lookup(domain)
 
-	alphaSet := []rune(alpha)
-	uniqueCombinations := combinations.Generate(alphaSet, search, wildcardCount)
-	fmt.Println(len(uniqueCombinations), "domain name combinations generated")
+	if err != nil {
+		fmt.Println("Query Domain:", err.Error())
+		return
+	}
 
-	domains := domains(uniqueCombinations, tlds)
-	fmt.Println(len(domains), "url combinations generated")
+	body := string(response)
 
-	for _, domain := range domains {
+	result, err := whoisparser.Parse(body)
 
-		time.Sleep(500 * time.Millisecond)
+	if err == whoisparser.ErrDomainNotFound || whoisparser.IsNotFound(body) {
+		fmt.Println(domain, "Domain not registered")
+		return
+	}
 
-		response, err := whois.Lookup(domain)
+	if err != nil {
+		fmt.Println(domain, err.Error())
+		return
+	}
 
-		if err != nil {
-			fmt.Println("Query Domain:", err.Error())
+	if result.Domain != nil {
+		if len(result.Domain.ExpirationDate) > 0 {
+			fmt.Println(domain, "Domain expires at", result.Domain.ExpirationDate)
 			return
 		}
-		body := string(response)
 
-		result, err := whoisparser.Parse(body)
-
-		if err != nil {
-
-			if err == whoisparser.ErrDomainNotFound {
-				fmt.Println(domain, "Domain not registered")
-				continue
-			}
-
-			fmt.Println(err.Error())
-			continue
-		}
-
-		if len(result.Domain.ExpirationDate) != 0 {
-			fmt.Println(domain, "Domain expires at", result.Domain.ExpirationDate)
+		if len(result.Domain.UpdatedDate) > 0 {
+			fmt.Println(domain, "Domain last updated at", result.Domain.UpdatedDate)
+			return
 		}
 	}
 }
