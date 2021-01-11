@@ -1,15 +1,41 @@
 package combinations
 
-import "fmt"
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
 
-// Generate creates a set of combinations based on which characters are allowed (set)
-func Generate(set []rune, searchString string, wildcardCharacters int) []string {
-	res := printAllKLengthRec(set, "", len(set), wildcardCharacters)
+// GenerateNames creates a set of combinations based on which characters are allowed (set)
+func GenerateNames(set []rune, searchPattern string, wildcardCharacter string) []string {
+
+	countWildcardCharacters := countWildcards(searchPattern) // "H_ll_"
+	searchString := strings.ReplaceAll(searchPattern, wildcardCharacter, "%v")
+
+	res := printAllKLengthRec(set, "", len(set), countWildcardCharacters)
 	out := []string{}
 	for _, v := range res {
 		out = append(out, combine(searchString, v))
 	}
 	return out
+}
+
+// GenerateDomains creates a set of domains using a set of TLDs
+func GenerateDomains(combos []string, tlds []string) []string {
+	out := []string{}
+	for _, tld := range tlds {
+		for _, combo := range combos {
+			domain := fmt.Sprintf("%v.%v", combo, tld)
+			out = append(out, domain)
+		}
+	}
+	return out
+}
+
+func countWildcards(search string) int {
+	wildcardFind := regexp.MustCompile("\\_")
+	matches := wildcardFind.FindAllStringIndex(search, -1)
+	return len(matches)
 }
 
 // The main recursive method to print all possible strings of length k

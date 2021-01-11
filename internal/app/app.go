@@ -2,8 +2,6 @@ package app
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/emmanuelay/domainsearch/internal/config"
@@ -11,23 +9,6 @@ import (
 	"github.com/emmanuelay/domainsearch/pkg/whois"
 	whoisparser "github.com/likexian/whois-parser-go"
 )
-
-func domains(combos []string, tlds []string) []string {
-	out := []string{}
-	for _, tld := range tlds {
-		for _, combo := range combos {
-			domain := fmt.Sprintf("%v.%v", combo, tld)
-			out = append(out, domain)
-		}
-	}
-	return out
-}
-
-func countWildcards(search string) int {
-	wildcardFind := regexp.MustCompile("\\_")
-	matches := wildcardFind.FindAllStringIndex(search, -1)
-	return len(matches)
-}
 
 func getCharacterRange(customRange string, alphaNum, num bool) string {
 	const (
@@ -58,17 +39,15 @@ func Run(cfg config.Configuration) {
 
 	for _, search := range cfg.SearchPatterns {
 		fmt.Println("Performing generation for:", search)
-		count := countWildcards(search)
-		searchPattern := strings.ReplaceAll(search, "_", "%v")
 
 		alphaSet := []rune(alpha)
 
 		// Run generation of unique combinations
-		uniqueCombinations := combinations.Generate(alphaSet, searchPattern, count)
+		uniqueCombinations := combinations.GenerateNames(alphaSet, search, "_")
 		fmt.Println(len(uniqueCombinations), "domain name combinations generated")
 
 		// Run generation of domains to check
-		domains := domains(uniqueCombinations, cfg.TLD)
+		domains := combinations.GenerateDomains(uniqueCombinations, cfg.TLD)
 		fmt.Println(len(domains), "url combinations generated")
 
 		// run whoislookups
