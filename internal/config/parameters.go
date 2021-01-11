@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -105,7 +105,8 @@ func validateArguments(config Configuration) error {
 	return nil
 }
 
-func getConfigurationFromArguments() (Configuration, error) {
+// GetConfigurationFromArguments ...
+func GetConfigurationFromArguments() (Configuration, error) {
 
 	config := Configuration{}
 
