@@ -9,7 +9,6 @@ import (
 )
 
 func main() {
-	// Get config from commandline arguments
 	cfg, err := config.GetConfigurationFromArguments()
 	if err != nil {
 		fmt.Println(err)

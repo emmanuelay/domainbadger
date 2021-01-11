@@ -29,30 +29,32 @@ func countWildcards(search string) int {
 	return len(matches)
 }
 
-const (
-	alphabet = "abcdefghijklmnopqrstuvwxyz"
-	numerals = "0123456789"
-	all      = alphabet + numerals
-)
+func getCharacterRange(customRange string, alphaNum, num bool) string {
+	const (
+		alphabet = "abcdefghijklmnopqrstuvwxyz"
+		numerals = "0123456789"
+		all      = alphabet + numerals
+	)
+
+	if len(customRange) > 0 {
+		return customRange
+	}
+
+	if alphaNum {
+		return all
+	}
+	if num {
+		return numerals
+	}
+
+	// Default to alpha
+	return alphabet
+}
 
 // Run ...
 func Run(cfg config.Configuration) {
 
-	alpha := ""
-
-	if len(cfg.CustomRange) > 0 {
-		alpha = cfg.CustomRange
-	} else {
-		if cfg.Alpha {
-			alpha = alphabet
-		}
-		if cfg.AlphaNumeric {
-			alpha = all
-		}
-		if cfg.Numeric {
-			alpha = numerals
-		}
-	}
+	alpha := getCharacterRange(cfg.CustomRange, cfg.AlphaNumeric, cfg.Numeric)
 
 	for _, search := range cfg.SearchPatterns {
 		fmt.Println("Performing generation for:", search)
