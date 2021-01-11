@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/emmanuelay/domainsearch/internal/app"
-	"github.com/emmanuelay/domainsearch/pkg/config"
+	"github.com/emmanuelay/domainsearch/internal/config"
 )
 
 func main() {
