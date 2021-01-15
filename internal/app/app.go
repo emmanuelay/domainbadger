@@ -37,6 +37,11 @@ func Run(cfg config.Configuration) {
 
 	alpha := getCharacterRange(cfg.CustomRange, cfg.AlphaNumeric, cfg.Numeric)
 
+	count := 0
+
+	// TODO(ea): Create struct for reporting progress (current, # registered, # not registered etc) in a structured way
+	doneChannel := make(chan string, 1)
+
 	for _, search := range cfg.SearchPatterns {
 		fmt.Println("Performing generation for:", search)
 
@@ -46,22 +51,37 @@ func Run(cfg config.Configuration) {
 		uniqueCombinations := combinations.GenerateNames(alphaSet, search, "_")
 		fmt.Println(len(uniqueCombinations), "domain name combinations generated")
 
-		// Run generation of domains to check
-		domains := combinations.GenerateDomains(uniqueCombinations, cfg.TLD)
-		fmt.Println(len(domains), "url combinations generated")
-
-		// run whoislookups
-		for _, domain := range domains {
-
-			lookupDomain(domain)
-
-			time.Sleep(time.Duration(cfg.Delay) * time.Millisecond)
+		// Parallellize lookup for each TLD
+		for _, tld := range cfg.TLD {
+			go lookupDomainsForTLD(search, uniqueCombinations, tld, int(cfg.Delay), doneChannel)
 		}
 
-		// TODO(ea): compile and display results nicely
-		fmt.Println(" ")
+		count = count + len(cfg.TLD)
 	}
 
+	// TODO(ea): Add Multi Progress Bar
+	for {
+		select {
+		case val := <-doneChannel:
+			fmt.Println("Scan completed for TLD:", val)
+			count--
+		}
+
+		if count == 0 {
+			break
+		}
+	}
+
+	// TODO(ea): compile and display results nicely
+}
+
+func lookupDomainsForTLD(pattern string, names []string, tld string, delay int, done chan string) {
+	domains := combinations.GenerateDomains(names, []string{tld})
+	for _, domain := range domains {
+		lookupDomain(domain)
+		time.Sleep(time.Duration(delay) * time.Millisecond)
+	}
+	done <- fmt.Sprintf("%v.%v", pattern, tld)
 }
 
 func lookupDomain(domain string) {
