@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/emmanuelay/domainsearch/internal/config"
-	"github.com/emmanuelay/domainsearch/pkg/combinations"
-	"github.com/emmanuelay/domainsearch/pkg/whois"
+	"github.com/emmanuelay/badger/internal/config"
+	"github.com/emmanuelay/badger/pkg/combinations"
+	"github.com/emmanuelay/badger/pkg/whois"
 	whoisparser "github.com/likexian/whois-parser-go"
 )
 

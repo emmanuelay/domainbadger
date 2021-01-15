@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/emmanuelay/domainsearch/internal/app"
-	"github.com/emmanuelay/domainsearch/internal/config"
+	"github.com/emmanuelay/badger/internal/app"
+	"github.com/emmanuelay/badger/internal/config"
 )
 
 func main() {

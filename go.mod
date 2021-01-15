@@ -1,4 +1,4 @@
-module github.com/emmanuelay/domainsearch
+module github.com/emmanuelay/badger
 
 go 1.15
 
