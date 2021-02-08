@@ -110,6 +110,15 @@ func GetConfigurationFromArguments() (Configuration, error) {
 
 	config := Configuration{}
 
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n")
+		fmt.Println("\tbadger [parameters] <searchterms>")
+		fmt.Println("\n\t<searchterms> are expected to use underscore as wildcard")
+		fmt.Println("\nParameters:")
+
+		flag.PrintDefaults()
+	}
+
 	flag.BoolVar(&config.AllCharacters, "all", true, "Use all possible characters (a-z, 0-9, -)")
 	flag.BoolVar(&config.Alpha, "alpha", false, "Use alphabetic range (a-z)")
 	flag.BoolVar(&config.AlphaNumeric, "alphanum", false, "Use alphanumeric range (a-z, 0-9)")
