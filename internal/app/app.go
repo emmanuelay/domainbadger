@@ -10,22 +10,23 @@ import (
 // Run ...
 func Run(cfg config.Configuration) {
 
-	tldCount := 0
-
 	progressChannel := make(chan lookupResult, 1)
 	doneChannel := make(chan string, 1)
+	intDelay := int(cfg.Delay)
+	alphaSet := []rune(cfg.Characters)
+	tldCount := 0
 
-	for _, search := range cfg.SearchPatterns {
-		fmt.Println("Performing generation for:", search)
-
-		alphaSet := []rune(cfg.Characters)
+	// For each search pattern
+	for _, searchPattern := range cfg.SearchPatterns {
 
 		// Run generation of unique combinations
-		uniqueCombinations := combinations.GenerateNames(alphaSet, search, "_")
+		uniqueCombinations := combinations.GenerateNames(alphaSet, searchPattern, "_")
 
-		// Parallellize lookup for each TLD
+		// For each TLD
 		for _, tld := range cfg.TLD {
-			go lookupDomainsForTLD(search, uniqueCombinations, tld, int(cfg.Delay), progressChannel, doneChannel)
+
+			// Run lookup for the TLD and the unique combinations generated from the search pattern
+			go lookupDomainsForTLD(searchPattern, uniqueCombinations, tld, intDelay, progressChannel, doneChannel)
 		}
 
 		tldCount = tldCount + len(cfg.TLD)
