@@ -39,7 +39,7 @@ func Run(cfg config.Configuration) {
 
 	count := 0
 
-	// TODO(ea): Create struct for reporting progress (current, # registered, # not registered etc) in a structured way
+	progressChannel := make(chan lookupResult, 1)
 	doneChannel := make(chan string, 1)
 
 	for _, search := range cfg.SearchPatterns {
@@ -59,12 +59,20 @@ func Run(cfg config.Configuration) {
 		count = count + len(cfg.TLD)
 	}
 
-	// TODO(ea): Add Multi Progress Bar
+	// TODO(ea): Create Multi Progress Bar
 	for {
 		select {
 		case val := <-doneChannel:
-			fmt.Println("Scan completed for TLD:", val)
-			count--
+			{
+				// TODO(ea): Update progress bar
+				fmt.Println("Scan completed for TLD:", val)
+				count--
+			}
+		case result := <-progressChannel:
+			{
+				// TODO(ea): Update progress bar
+				fmt.Println("Results for lookup:", result.Domain, result.Available)
+			}
 		}
 
 		if count == 0 {
@@ -76,11 +84,20 @@ func Run(cfg config.Configuration) {
 }
 
 func lookupDomainsForTLD(pattern string, names []string, tld string, delay int, done chan string) {
+
+	// TODO(ea): Store start time
+
 	domains := combinations.GenerateDomains(names, []string{tld})
 	for _, domain := range domains {
+
+		// TODO(ea): pass results to main thread
 		lookupDomain(domain)
+
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
+
+	// TODO(ea): Compile total time
+
 	done <- fmt.Sprintf("%v.%v", pattern, tld)
 }
 
