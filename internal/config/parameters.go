@@ -92,9 +92,9 @@ func validateArguments(config Configuration) error {
 	// Check searchpatterns for wildcard character (underscore)
 	// and invalid characters
 	for _, search := range config.SearchPatterns {
-		if count := countWildcards(search); count == 0 {
-			return fmt.Errorf("Invalid search pattern, no wildcards found: '%v", search)
-		}
+		// if count := countWildcards(search); count == 0 {
+		// return fmt.Errorf("Invalid search pattern, no wildcards found: '%v", search)
+		// }
 
 		clean := strings.ReplaceAll(search, "_", "")
 		if len(clean) > 1 && !isValidDomain(clean) {
@@ -127,7 +127,7 @@ func GetConfigurationFromArguments() (Configuration, error) {
 	flag.Int64Var(&config.Delay, "delay", 500, "Delay between lookup attempts, in milliseconds")
 
 	var tlds string
-	flag.StringVar(&tlds, "tld", "com", "TLDs to search. Use comma to add multiple (ex. com,org,net)")
+	flag.StringVar(&tlds, "tld", "com", "TLDs to search. Defaults to 'com'. Use comma to add multiple (ex. com,org,net).")
 
 	flag.Parse()
 
