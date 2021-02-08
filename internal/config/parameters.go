@@ -20,6 +20,7 @@ type Configuration struct {
 	Delay          int64
 	TLD            []string
 	SearchPatterns []string
+	Characters     string
 }
 
 func isValidDomain(domain string) bool {
@@ -105,6 +106,28 @@ func validateArguments(config Configuration) error {
 	return nil
 }
 
+func getCharacterRange(customRange string, alphaNum, num bool) string {
+	const (
+		alphabet = "abcdefghijklmnopqrstuvwxyz"
+		numerals = "0123456789"
+		all      = alphabet + numerals
+	)
+
+	if len(customRange) > 0 {
+		return customRange
+	}
+
+	if alphaNum {
+		return all
+	}
+	if num {
+		return numerals
+	}
+
+	// Default to alpha
+	return alphabet
+}
+
 // GetConfigurationFromArguments ...
 func GetConfigurationFromArguments() (Configuration, error) {
 
@@ -132,6 +155,8 @@ func GetConfigurationFromArguments() (Configuration, error) {
 	flag.Parse()
 
 	config.TLD = strings.Split(tlds, ",")
+
+	config.Characters = getCharacterRange(config.CustomRange, config.AlphaNumeric, config.Numeric)
 
 	config.SearchPatterns = flag.Args() // Search mask to use (ex. 'se_rchm_sk' to use 2 wildcard ranges)
 
