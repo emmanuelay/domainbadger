@@ -34,4 +34,12 @@ badger <flags> [searchterms]
 	Delay in milliseconds
 
 -help
+	This info.
 ```
+
+
+# TODO
+
+- [ ] Allow search terms without wildcards
+- [ ] Build central mechanism for synchronization of parallell operations in search
+- [ ] Add progressbar
