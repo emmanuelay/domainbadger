@@ -12,11 +12,9 @@ import (
 )
 
 type report struct {
-	TLD          string
-	TotalCount   int
-	CurrentCount int
-	Results      []lookupResult
-	Bar          *mpb.Bar
+	TLD     string
+	Results []lookupResult
+	Bar     *mpb.Bar
 }
 
 // Run ...
@@ -29,36 +27,36 @@ func Run(cfg config.Configuration) {
 	tldCount := len(cfg.TLD)
 
 	reports := map[string]report{}
+	allCombinations := []string{}
 
-	fmt.Println("Performing lookups")
+	// Generate all combinations
+	for _, searchPattern := range cfg.SearchPatterns {
+		patternCombinations := combinations.GenerateNames(alphaSet, searchPattern, "_")
+		allCombinations = append(allCombinations, patternCombinations...)
+	}
+	fmt.Printf("Generated %d combinations\n", len(allCombinations))
 
-	var wg sync.WaitGroup
+	wg := sync.WaitGroup{}
 	p := mpb.New(mpb.WithWaitGroup(&wg), mpb.WithWidth(40))
 
-	// For each TLD
+	fmt.Printf("Performing %v lookups\n", len(allCombinations)*tldCount)
+
+	// This loop starts all lookups.
+	// Grouped by TLD because we want progress reported on a TLD-basis
 	for _, tld := range cfg.TLD {
 
 		rep := report{
-			TLD:          tld,
-			CurrentCount: 0,
-			Results:      []lookupResult{},
+			TLD:     tld,
+			Results: []lookupResult{},
 		}
 
-		// For each search pattern
-		for _, searchPattern := range cfg.SearchPatterns {
+		// Run lookup for the TLD and the unique combinations generated from the search pattern
+		go lookupDomainsForTLD(&wg, allCombinations, tld, intDelay, progressChannel, doneChannel)
 
-			// Run generation of unique combinations
-			uniqueCombinations := combinations.GenerateNames(alphaSet, searchPattern, "_")
-
-			rep.TotalCount = rep.TotalCount + len(uniqueCombinations)
-
-			wg.Add(1)
-			// Run lookup for the TLD and the unique combinations generated from the search pattern
-			go lookupDomainsForTLD(searchPattern, uniqueCombinations, tld, intDelay, progressChannel, doneChannel)
-		}
-
+		// Add progress bar for current TLD
 		name := fmt.Sprintf("%v:", tld)
-		bar := p.AddBar(int64(rep.TotalCount),
+		bar := p.AddBar(
+			int64(len(allCombinations)),
 			mpb.PrependDecorators(
 				decor.Name(name, decor.WC{W: 6, C: decor.DidentRight}),
 			),
@@ -75,17 +73,16 @@ func Run(cfg config.Configuration) {
 		reports[tld] = rep
 	}
 
+	// This loops waits for all lookups to finish
 	for {
 		select {
 		case _ = <-doneChannel:
 			{
 				tldCount--
-				wg.Done()
 			}
 		case result := <-progressChannel:
 			{
 				rep := reports[result.TLD]
-				rep.CurrentCount++
 				rep.Results = append(rep.Results, result)
 				reports[result.TLD] = rep
 
@@ -98,11 +95,12 @@ func Run(cfg config.Configuration) {
 		}
 	}
 
+	// Wait for progress bar to render properly
 	p.Wait()
 
 	// TODO(ea): compile and display results nicely
 	for idx, rep := range reports {
-		fmt.Println("-", rep.TLD, len(rep.Results), idx, rep.CurrentCount, rep.TotalCount)
+		fmt.Println("-", rep.TLD, len(rep.Results), idx)
 	}
 
 }

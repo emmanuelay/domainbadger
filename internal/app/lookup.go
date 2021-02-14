@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/emmanuelay/badger/pkg/combinations"
@@ -9,16 +10,18 @@ import (
 	whoisparser "github.com/likexian/whois-parser-go"
 )
 
-func lookupDomainsForTLD(pattern string, names []string, tld string, delay int, progress chan lookupResult, done chan string) {
+func lookupDomainsForTLD(waitGroup *sync.WaitGroup, names []string, tld string, delay int, progress chan lookupResult, done chan string) {
 
+	waitGroup.Add(1)
 	start := time.Now()
 
 	domains := combinations.GenerateDomains(names, []string{tld})
 	for _, domain := range domains {
 
-		// TODO(ea): pass results to main thread
 		lookup := lookupDomain(domain)
 		lookup.TLD = tld
+
+		// Pass results to main thread
 		progress <- lookup
 
 		time.Sleep(time.Duration(delay) * time.Millisecond)
@@ -26,7 +29,8 @@ func lookupDomainsForTLD(pattern string, names []string, tld string, delay int, 
 
 	duration := time.Since(start)
 
-	done <- fmt.Sprintf("%v.%v (%v s)", pattern, tld, duration.Seconds())
+	done <- fmt.Sprintf("%v (%v s)", tld, duration.Seconds())
+	waitGroup.Done()
 }
 
 func lookupDomain(domain string) lookupResult {
