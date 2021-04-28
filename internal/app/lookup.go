@@ -10,7 +10,7 @@ import (
 	whoisparser "github.com/likexian/whois-parser-go"
 )
 
-func lookupDomainsForTLD(waitGroup *sync.WaitGroup, names []string, tld string, delay int, progress chan lookupResult, done chan string) {
+func lookupDomainsForTLD(waitGroup *sync.WaitGroup, names []string, tld string, delay int, progress chan DomainLookupResult, done chan string) {
 
 	waitGroup.Add(1)
 	start := time.Now()
@@ -21,6 +21,13 @@ func lookupDomainsForTLD(waitGroup *sync.WaitGroup, names []string, tld string, 
 		lookup := lookupDomain(domain)
 		lookup.TLD = tld
 
+		if lookup.Error != nil {
+			if lookup.Error.Error() == "Domain query limit exceeded." {
+				fmt.Printf("Query limit reached for '.%v' - ", tld)
+				break
+			}
+		}
+
 		// Pass results to main thread
 		progress <- lookup
 
@@ -29,15 +36,15 @@ func lookupDomainsForTLD(waitGroup *sync.WaitGroup, names []string, tld string, 
 
 	duration := time.Since(start)
 
-	done <- fmt.Sprintf("%v (%v s)", tld, duration.Seconds())
+	done <- fmt.Sprintf(".%v finished in (%.2f seconds)", tld, duration.Seconds())
 	waitGroup.Done()
 }
 
-func lookupDomain(domain string) lookupResult {
+func lookupDomain(domain string) DomainLookupResult {
 
 	response, err := whois.Lookup(domain)
 
-	lookupResult := lookupResult{
+	lookupResult := DomainLookupResult{
 		Domain:    domain,
 		Available: false,
 	}
@@ -61,7 +68,6 @@ func lookupDomain(domain string) lookupResult {
 	}
 
 	if err != nil {
-		fmt.Println(domain, err.Error())
 		lookupResult.Error = err
 		return lookupResult
 	}
