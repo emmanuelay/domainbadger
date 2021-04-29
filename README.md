@@ -2,10 +2,14 @@
 
 Badger is a CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
 
+
+[![asciicast](https://asciinema.org/a/410652.svg)](https://asciinema.org/a/410652)
+
 **Example**
 ```sh
 badger -custom aoe -tld se,io,nu h_ll_ w_rld d_min_ti_n
 ```
+
 
 This will perform a whois lookup on domain name combinations using selected top-level domains (`se,io` and `nu`) and combinations of the characters `aoe` in three separate search terms `h_ll_`, `w_rld` and `d_min_ti_n`. Underscore `_` is treated as the wildcard character and is replaced with different combinations of `aoe`.
 
