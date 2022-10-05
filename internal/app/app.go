@@ -1,24 +1,24 @@
 package app
 
 import (
+	"context"
 	"fmt"
-	"strings"
+	"os"
+	"runtime"
 	"sync"
 
 	"github.com/emmanuelay/badger/internal/config"
 	"github.com/emmanuelay/badger/pkg/combinations"
+	"github.com/olekukonko/tablewriter"
+	"github.com/schollz/progressbar/v3"
 )
 
 // Run ...
-func Run(cfg config.Configuration) {
-
-	progressChannel := make(chan DomainLookupResult, 1)
-	doneChannel := make(chan string, 1)
+func Run(ctx context.Context, cfg config.Configuration) {
 	intDelay := int(cfg.Delay)
 	alphaSet := []rune(cfg.Characters)
 	tldCount := len(cfg.TLD)
 
-	reports := map[string]TLDResults{}
 	allCombinations := []string{}
 
 	// Generate all combinations
@@ -28,85 +28,97 @@ func Run(cfg config.Configuration) {
 	}
 
 	fmt.Printf("Generated %d unique combinations\n", len(allCombinations))
+	totalLookups := len(allCombinations) * tldCount
+	fmt.Printf("Performing %v separate lookups\n", totalLookups)
 
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
 
-	fmt.Printf("Performing %v separate lookups\n", len(allCombinations)*tldCount)
+	maxProcs := runtime.GOMAXPROCS(0)
+	resultChannel := make(chan DomainLookupResult, totalLookups)
+	jobsChannel := make(chan DomainLookupJob, maxProcs)
+
+	fmt.Printf("Starting %d workers ...\n", maxProcs)
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	for w := 1; w <= maxProcs; w++ {
+		go worker(cancelCtx, w+1, &wg, intDelay, jobsChannel, resultChannel)
+	}
+
+	bar := progressbar.Default(int64(totalLookups), "Queuing")
 
 	// This loop starts all lookups.
-	// Grouped by TLD because we want progress reported on a TLD-basis
 	for _, tld := range cfg.TLD {
-
-		rep := TLDResults{
-			TLD:         tld,
-			Results:     []DomainLookupResult{},
-			Available:   0,
-			Unavailable: 0,
-			ErrorCount:  0,
-			TotalCount:  0,
-		}
-
-		// Run lookup for the TLD and the unique combinations generated from the search pattern
-		go lookupDomainsForTLD(&wg, allCombinations, tld, intDelay, progressChannel, doneChannel)
-
-		// Add progress bar for current TLD
-		reports[tld] = rep
-	}
-
-	// This loops receives results from lookups
-	// ..and breaks when the last lookup is done
-	for {
-		select {
-		case tldTime := <-doneChannel:
-			{
-				fmt.Println(tldTime)
-				tldCount--
+		for _, combination := range allCombinations {
+			domain := fmt.Sprintf("%s.%s", combination, tld)
+			job := DomainLookupJob{
+				Domain: domain,
 			}
-		case result := <-progressChannel:
-			{
-				rep := reports[result.TLD]
+			jobsChannel <- job
+			bar.Add(1)
+		}
+	}
 
-				rep.TotalCount++
+	fmt.Println("All jobs added, waiting")
 
-				if result.Available {
-					fmt.Println("✅", result.Domain)
-					rep.Available++
-				} else {
-					if result.Error != nil {
-						fmt.Println("❌", result.Domain, result.Error)
-						rep.ErrorCount++
-					} else {
-						fmt.Println("🛑", result.Domain)
-						rep.Unavailable++
-					}
-				}
+	tab := tablewriter.NewWriter(os.Stdout)
+	tab.SetHeader([]string{"domain", "available", "error", "expires at", "last renewed", "registrant"})
 
-				rep.Results = append(rep.Results, result)
-				reports[result.TLD] = rep
+	for i := 0; i < totalLookups; i++ {
+
+		result := <-resultChannel
+
+		var expirationDate, updateDate, registrant string
+
+		if result.WhoIs.Domain != nil {
+			expirationDate = result.WhoIs.Domain.ExpirationDate
+			updateDate = result.WhoIs.Domain.UpdatedDate
+		}
+
+		if result.WhoIs.Registrant != nil {
+			registrant = result.WhoIs.Registrant.Name
+		}
+
+		if result.Available {
+			tab.Append([]string{
+				result.Domain,
+				"✅",
+				"",
+				"-",
+				"-",
+				"-",
+			})
+
+		} else {
+			if result.Error != nil {
+				tab.Append([]string{
+					result.Domain,
+					"❌",
+					result.Error.Error(),
+					expirationDate,
+					updateDate,
+					registrant,
+				})
+			} else {
+				tab.Append([]string{
+					result.Domain,
+					"🛑",
+					"",
+					expirationDate,
+					updateDate,
+					registrant,
+				})
+
 			}
 		}
 
-		if tldCount == 0 {
-			break
-		}
 	}
 
-	// Display summary
-	fmt.Println("-")
+	close(jobsChannel)
+	close(resultChannel)
 
-	for _, rep := range reports {
+	wg.Wait()
 
-		res := fmt.Sprintf("[.%s]\t%v out of %v domains available", strings.ToUpper(rep.TLD), rep.Available, rep.TotalCount)
-
-		if rep.Unavailable > 0 {
-			res += fmt.Sprintf(", %v unavailable", rep.Unavailable)
-		}
-
-		if rep.ErrorCount > 0 {
-			res += fmt.Sprintf(", %v failed lookup", rep.ErrorCount)
-		}
-
-		fmt.Println(res)
-	}
-
+	tab.Render()
 }

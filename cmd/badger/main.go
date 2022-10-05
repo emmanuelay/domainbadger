@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -9,11 +10,13 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg, err := config.GetConfigurationFromArguments()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
 
-	app.Run(cfg)
+	app.Run(ctx, cfg)
 }

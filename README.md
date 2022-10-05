@@ -1,6 +1,6 @@
 # Badger
 
-Badger is a CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
+Badger is a fast and simple CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
 
 
 [![asciicast](https://asciinema.org/a/410652.svg)](https://asciinema.org/a/410652)
@@ -40,9 +40,3 @@ badger <flags> [searchterms]
 -help
 	This info.
 ```
-
-
-# TODO
-
-- [ ] Build central mechanism for synchronization of parallell operations in search
-- [ ] Add progressbar

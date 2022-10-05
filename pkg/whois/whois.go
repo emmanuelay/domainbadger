@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"time"
 
@@ -16,7 +16,7 @@ func Lookup(domain string) ([]byte, error) {
 
 	zone := zonedb.PublicZone(domain)
 	if zone == nil {
-		return nil, errors.New("Could not identify TLDs corresponding whois-server")
+		return nil, errors.New("could not identify TLDs corresponding whois-server")
 	}
 
 	whoisServer := fmt.Sprintf("%v:43", zone.WhoisServer())
@@ -44,7 +44,8 @@ func Lookup(domain string) ([]byte, error) {
 	}
 
 	reader := bufio.NewReader(conn)
-	result, err := ioutil.ReadAll(reader)
+
+	result, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
