@@ -3,7 +3,7 @@
 Badger is a fast and simple CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
 
 
-[![asciicast](https://asciinema.org/a/410652.svg)](https://asciinema.org/a/410652)
+[![asciicast](https://asciinema.org/a/525969.svg)](https://asciinema.org/a/525969)
 
 **Example**
 ```sh
