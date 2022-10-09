@@ -1,2 +1,6 @@
 # Binary
 cmd/badger/badger
+./badger
+
+# Other
+./Makefile
