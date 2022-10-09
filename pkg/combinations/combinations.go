@@ -22,7 +22,7 @@ func GenerateNames(set []rune, searchPattern string, wildcardCharacter string) [
 
 // GenerateDomains creates a set of domains using a set of TLDs
 func GenerateDomains(combos []string, tlds []string) []string {
-	out := []string{}
+	out := make([]string, 0, len(combos)*len(tlds))
 	for _, tld := range tlds {
 		for _, combo := range combos {
 			domain := fmt.Sprintf("%v.%v", combo, tld)
@@ -32,34 +32,35 @@ func GenerateDomains(combos []string, tlds []string) []string {
 	return out
 }
 
+func GenerateDomainCombinations(characters string, searchPatterns, domains []string) []string {
+	alphaSet := []rune(characters)
+	allCombinations := []string{}
+
+	// Generate all combinations
+	for _, searchPattern := range searchPatterns {
+		patternCombinations := GenerateNames(alphaSet, searchPattern, "_")
+		allCombinations = append(allCombinations, patternCombinations...)
+	}
+
+	return GenerateDomains(allCombinations, domains)
+}
+
 func countWildcards(search string) int {
-	wildcardFind := regexp.MustCompile("\\_")
+	wildcardFind := regexp.MustCompile(`\_`)
 	matches := wildcardFind.FindAllStringIndex(search, -1)
 	return len(matches)
 }
 
-// The main recursive method to print all possible strings of length k
 func printAllKLengthRec(set []rune, prefix string, n int, k int) []string {
 
-	// Base case: k is 0,
-	// print prefix
 	if k == 0 {
 		return []string{prefix}
 	}
 
-	// One by one add all characters
-	// from set and recursively
-	// call for k equals to k-1
-
 	out := []string{}
 
 	for i := 0; i < n; i++ {
-
-		// Next character of input added
 		newPrefix := prefix + string(set[i])
-
-		// k is decreased, because
-		// we have added a new character
 		res := printAllKLengthRec(set, newPrefix, n, k-1)
 		out = append(out, res...)
 	}
