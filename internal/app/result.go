@@ -15,4 +15,5 @@ type DomainLookupResult struct {
 
 type DomainLookupJob struct {
 	Domain string
+	Delay  int64
 }
