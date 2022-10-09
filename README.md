@@ -1,6 +1,6 @@
-# Badger
+# Domainbadger
 
-Badger is a fast and simple CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
+Domainbadger is a fast and simple CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
 
 
 [![asciicast](https://asciinema.org/a/525969.svg)](https://asciinema.org/a/525969)
