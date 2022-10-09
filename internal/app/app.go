@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"runtime"
 	"sync"
 
 	"github.com/emmanuelay/badger/internal/config"
@@ -15,110 +14,91 @@ import (
 
 // Run ...
 func Run(ctx context.Context, cfg config.Configuration) {
-	intDelay := int(cfg.Delay)
-	alphaSet := []rune(cfg.Characters)
-	tldCount := len(cfg.TLD)
 
-	allCombinations := []string{}
+	domains := combinations.GenerateDomainCombinations(cfg.Characters, cfg.SearchPatterns, cfg.TLD)
+	totalLookups := len(domains)
 
-	// Generate all combinations
-	for _, searchPattern := range cfg.SearchPatterns {
-		patternCombinations := combinations.GenerateNames(alphaSet, searchPattern, "_")
-		allCombinations = append(allCombinations, patternCombinations...)
-	}
+	fmt.Printf("Generated %d unique combinations\n", totalLookups)
 
-	fmt.Printf("Generated %d unique combinations\n", len(allCombinations))
-	totalLookups := len(allCombinations) * tldCount
-	fmt.Printf("Performing %v separate lookups\n", totalLookups)
-
-	var wg sync.WaitGroup
-
-	maxProcs := runtime.GOMAXPROCS(0)
-	resultChannel := make(chan DomainLookupResult, totalLookups)
+	maxProcs := 20
+	resultChannel := make(chan DomainLookupResult)
 	jobsChannel := make(chan DomainLookupJob, maxProcs)
 
+	quit := make(chan bool)
+
+	var wg sync.WaitGroup
+	wg.Add(maxProcs)
+
+	go func() {
+		// Close the result channel when all workers have finished
+		wg.Wait()
+		close(resultChannel)
+	}()
+
 	fmt.Printf("Starting %d workers ...\n", maxProcs)
-
-	cancelCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	for w := 1; w <= maxProcs; w++ {
-		go worker(cancelCtx, w+1, &wg, intDelay, jobsChannel, resultChannel)
+	for w := 0; w < maxProcs; w++ {
+		go func(workerId int) {
+			defer wg.Done()
+			worker(ctx, workerId, jobsChannel, resultChannel)
+		}(w)
 	}
 
-	bar := progressbar.Default(int64(totalLookups), "Queuing")
+	bar := progressbar.Default(int64(totalLookups), "Querying")
 
-	// This loop starts all lookups.
-	for _, tld := range cfg.TLD {
-		for _, combination := range allCombinations {
-			domain := fmt.Sprintf("%s.%s", combination, tld)
-			job := DomainLookupJob{
-				Domain: domain,
-			}
-			jobsChannel <- job
+	go func() {
+		output := [][]string{}
+
+		for result := range resultChannel {
 			bar.Add(1)
-		}
-	}
 
-	fmt.Println("All jobs added, waiting")
+			var expirationDate, updateDate, registrant string
 
-	tab := tablewriter.NewWriter(os.Stdout)
-	tab.SetHeader([]string{"domain", "available", "error", "expires at", "last renewed", "registrant"})
+			if result.WhoIs.Domain != nil {
+				expirationDate = result.WhoIs.Domain.ExpirationDate
+				updateDate = result.WhoIs.Domain.UpdatedDate
+			}
 
-	for i := 0; i < totalLookups; i++ {
+			if result.WhoIs.Registrant != nil {
+				registrant = result.WhoIs.Registrant.Name
+			}
 
-		result := <-resultChannel
-
-		var expirationDate, updateDate, registrant string
-
-		if result.WhoIs.Domain != nil {
-			expirationDate = result.WhoIs.Domain.ExpirationDate
-			updateDate = result.WhoIs.Domain.UpdatedDate
-		}
-
-		if result.WhoIs.Registrant != nil {
-			registrant = result.WhoIs.Registrant.Name
-		}
-
-		if result.Available {
-			tab.Append([]string{
-				result.Domain,
-				"✅",
-				"",
-				"-",
-				"-",
-				"-",
-			})
-
-		} else {
-			if result.Error != nil {
-				tab.Append([]string{
-					result.Domain,
-					"❌",
-					result.Error.Error(),
-					expirationDate,
-					updateDate,
-					registrant,
-				})
+			if result.Available {
+				output = append(output, []string{result.Domain, "✅", "", "-", "-", "-"})
 			} else {
-				tab.Append([]string{
-					result.Domain,
-					"🛑",
-					"",
-					expirationDate,
-					updateDate,
-					registrant,
-				})
-
+				if result.Error != nil {
+					// Lookup failed
+					output = append(output, []string{result.Domain, "❌", result.Error.Error(), expirationDate, updateDate, registrant})
+				} else {
+					// Domain is already registered
+					output = append(output, []string{result.Domain, "🛑", "", expirationDate, updateDate, registrant})
+				}
 			}
 		}
+		if err := bar.Close(); err != nil {
+			fmt.Println(err.Error())
+		}
+
+		tab := tablewriter.NewWriter(os.Stdout)
+		tab.SetHeader([]string{"domain", "available", "error", "expires at", "last renewed", "registrant"})
+
+		// TODO(ea): Sort the output
+
+		tab.AppendBulk(output)
+		tab.Render()
+
+		quit <- true
+	}()
+
+	// Push all lookups to queue/jobs channel
+	for _, domain := range domains {
+		job := DomainLookupJob{
+			Domain: domain,
+			Delay:  cfg.Delay,
+		}
+		jobsChannel <- job
 
 	}
-
 	close(jobsChannel)
-	close(resultChannel)
 
-	wg.Wait()
-
-	tab.Render()
+	<-quit
 }
