@@ -2,14 +2,10 @@ package app
 
 import (
 	"context"
-	"sync"
 	"time"
 )
 
-func worker(ctx context.Context, id int, wg *sync.WaitGroup, delay int, jobs <-chan DomainLookupJob, results chan<- DomainLookupResult) {
-	wg.Add(1)
-	defer wg.Done()
-
+func worker(ctx context.Context, id int, jobs <-chan DomainLookupJob, results chan<- DomainLookupResult) {
 	for {
 		select {
 		case job, ok := <-jobs:
@@ -17,8 +13,9 @@ func worker(ctx context.Context, id int, wg *sync.WaitGroup, delay int, jobs <-c
 				return
 			}
 
-			results <- lookupDomain(job.Domain)
-			time.Sleep(time.Duration(delay))
+			result := lookupDomain(job.Domain)
+			results <- result
+			time.Sleep(time.Duration(job.Delay))
 
 		case <-ctx.Done():
 			return
