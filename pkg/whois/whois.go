@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/zonedb/zonedb"
@@ -23,31 +24,37 @@ func Lookup(domain string) ([]byte, error) {
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", whoisServer)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed resolving tcp address: %w", err)
 	}
 
 	conn, err := net.Dial("tcp", tcpAddr.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed connecting to whois server: %w", err)
 	}
 	defer conn.Close()
 
 	payload := []byte(domain + "\r\n")
 	_, err = conn.Write(payload)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed requesting domain: %w", err)
 	}
 
 	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed setting read deadline: %w", err)
 	}
 
 	reader := bufio.NewReader(conn)
 
 	result, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		if strings.Contains(err.Error(), "i/o timeout") {
+			return nil, errors.New("request timed out")
+		}
+		if strings.Contains(err.Error(), "connection reset") {
+			return nil, errors.New("request failed")
+		}
+		return nil, fmt.Errorf("failed reading response: %w", err)
 	}
 
 	return result, nil
