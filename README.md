@@ -1,13 +1,22 @@
 # Domainbadger
 
-Domainbadger is a fast and simple CLI-tool used to find unregistered domains using wildcards & characterset combinations. 
+Domainbadger is a fast and simple CLI-tool used to find unregistered domains using wildcards & characterset combinations.
 
+## Installation
+
+### Homebrew
+
+```sh
+brew install emmanuelay/tap/domainbadger
+```
+
+## Demo
 
 [![asciicast](https://asciinema.org/a/525969.svg)](https://asciinema.org/a/525969)
 
 **Example**
 ```sh
-badger -custom aoe -tld se,io,nu h_ll_ w_rld d_min_ti_n
+domainbadger -custom aoe -tld se,io,nu h_ll_ w_rld d_min_ti_n
 ```
 
 
@@ -17,7 +26,7 @@ This will perform a whois lookup on domain name combinations using selected top-
 
 ## Usage
 ```sh
-badger <flags> [searchterms]
+domainbadger <flags> [searchterms]
 
 -alpha
 	Alphabetic search (a-z)
@@ -39,4 +48,7 @@ badger <flags> [searchterms]
 
 -help
 	This info.
+
+-version
+	Displays version information
 ```
