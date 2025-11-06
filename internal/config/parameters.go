@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -59,7 +60,7 @@ func validateArguments(config Configuration) error {
 		config.AlphaNumeric = false
 	}
 
-	if config.AlphaNumeric == true {
+	if config.AlphaNumeric {
 		config.Alpha = false
 	}
 
@@ -69,8 +70,8 @@ func validateArguments(config Configuration) error {
 		config.AllCharacters = false
 
 		// Check custom range for invalid characters
-		if isValidRange(config.CustomRange) != true {
-			return fmt.Errorf("Invalid custom characters specified: '%v'", config.CustomRange)
+		if !isValidRange(config.CustomRange) {
+			return fmt.Errorf("invalid custom characters specified: '%v'", config.CustomRange)
 		}
 	}
 
@@ -78,16 +79,16 @@ func validateArguments(config Configuration) error {
 	for _, tld := range config.TLD {
 
 		if !isValidTLD(tld) {
-			return fmt.Errorf("Invalid format TLD: '%v'", tld)
+			return fmt.Errorf("invalid format TLD: '%v'", tld)
 		}
 
 		if zone := zonedb.PublicZone(tld); zone == nil {
-			return fmt.Errorf("Invalid TLD specified: '%v'", tld)
+			return fmt.Errorf("invalid TLD specified: '%v'", tld)
 		}
 	}
 
 	if len(config.SearchPatterns) == 0 {
-		return errors.New("No search patterns provided")
+		return errors.New("no search patterns provided")
 	}
 
 	// Check searchpatterns for wildcard character (underscore)
@@ -99,7 +100,7 @@ func validateArguments(config Configuration) error {
 
 		clean := strings.ReplaceAll(search, "_", "")
 		if len(clean) > 1 && !isValidDomain(clean) {
-			return fmt.Errorf("Invalid search pattern, invalid domain: '%v", search)
+			return fmt.Errorf("invalid search pattern, invalid domain: '%v", search)
 		}
 	}
 
@@ -129,9 +130,10 @@ func getCharacterRange(customRange string, alphaNum, num bool) string {
 }
 
 // GetConfigurationFromArguments ...
-func GetConfigurationFromArguments() (Configuration, error) {
+func GetConfigurationFromArguments(version, commit, date string) (Configuration, error) {
 
 	config := Configuration{}
+	var showVersion bool
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n")
@@ -142,6 +144,7 @@ func GetConfigurationFromArguments() (Configuration, error) {
 		flag.PrintDefaults()
 	}
 
+	flag.BoolVar(&showVersion, "version", false, "Show version information")
 	flag.BoolVar(&config.AllCharacters, "all", true, "Use all possible characters (a-z, 0-9, -)")
 	flag.BoolVar(&config.Alpha, "alpha", false, "Use alphabetic range (a-z)")
 	flag.BoolVar(&config.AlphaNumeric, "alphanum", false, "Use alphanumeric range (a-z, 0-9)")
@@ -153,6 +156,11 @@ func GetConfigurationFromArguments() (Configuration, error) {
 	flag.StringVar(&tlds, "tld", "com", "TLDs to search. Defaults to 'com'. Use comma to add multiple (ex. com,org,net).")
 
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("badger version %s\ncommit: %s\nbuilt: %s\n", version, commit, date)
+		os.Exit(0)
+	}
 
 	config.TLD = strings.Split(tlds, ",")
 
