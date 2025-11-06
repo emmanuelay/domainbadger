@@ -4,3 +4,4 @@ cmd/badger/badger
 
 # Other
 ./Makefile
+.DS_Store
