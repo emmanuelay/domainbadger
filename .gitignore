@@ -1,6 +1,6 @@
 # Binary
-cmd/badger/badger
-./badger
+cmd/domainbadger/domainbadger
+./domainbadger
 
 # Other
 ./Makefile
