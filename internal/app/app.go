@@ -79,11 +79,9 @@ func Run(ctx context.Context, cfg config.Configuration) {
 		}
 
 		tab := tablewriter.NewWriter(os.Stdout)
-		tab.SetHeader([]string{"domain", "available", "error", "expires at", "last renewed", "registrant"})
+		tab.Header([]string{"domain", "available", "error", "expires at", "last renewed", "registrant"})
 
-		// TODO(ea): Sort the output
-
-		tab.AppendBulk(output)
+		tab.Bulk(output)
 		tab.Render()
 
 		quit <- true
