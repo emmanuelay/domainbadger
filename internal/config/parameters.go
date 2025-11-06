@@ -137,7 +137,7 @@ func GetConfigurationFromArguments(version, commit, date string) (Configuration,
 
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n")
-		fmt.Println("\tbadger [parameters] <searchterms>")
+		fmt.Println("\tdomainbadger [parameters] <searchterms>")
 		fmt.Println("\n\t<searchterms> are expected to use underscore as wildcard")
 		fmt.Println("\nParameters:")
 
@@ -158,7 +158,7 @@ func GetConfigurationFromArguments(version, commit, date string) (Configuration,
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("badger version %s\ncommit: %s\nbuilt: %s\n", version, commit, date)
+		fmt.Printf("domainbadger version %s\ncommit: %s\nbuilt: %s\n", version, commit, date)
 		os.Exit(0)
 	}
 
