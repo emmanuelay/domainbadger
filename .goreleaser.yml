@@ -1,0 +1,53 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: domainbadger
+    main: ./cmd/domainbadger
+    binary: domainbadger
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w 
+      - -X main.version={{.Version}}
+      - -X main.commit={{.ShortCommit}}
+      - -X main.date={{.Date}}
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+    format_overrides:
+      - goos: windows
+      - formats: [ 'zip' ]
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+
+homebrew_casks:
+  - repository:
+      owner: emmanuelay
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/emmanuelay/domainbadger"
+    description: "CLI tool for domain information lookup"
+    license: "MIT"

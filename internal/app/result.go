@@ -1,6 +1,6 @@
 package app
 
-import whoisparser "github.com/likexian/whois-parser-go"
+import whoisparser "github.com/likexian/whois-parser"
 
 // Structs for reporting and accumulating progress (# available, # not available)
 

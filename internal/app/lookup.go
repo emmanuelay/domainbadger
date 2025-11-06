@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/emmanuelay/badger/pkg/whois"
-	whoisparser "github.com/likexian/whois-parser-go"
+	whoisparser "github.com/likexian/whois-parser"
 )
 
 func lookupDomain(domain string) DomainLookupResult {
@@ -16,7 +16,7 @@ func lookupDomain(domain string) DomainLookupResult {
 
 	lookupResult := DomainLookupResult{
 		Domain:    domain,
-		Available: errors.Is(whoisErr, whoisparser.ErrDomainNotFound) || whoisparser.IsNotFound(body),
+		Available: errors.Is(whoisErr, whoisparser.ErrNotFoundDomain),
 		Error:     lookupErr,
 		WhoIs:     result,
 	}

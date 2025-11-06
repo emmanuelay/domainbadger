@@ -1,6 +1,8 @@
 # Binary
-cmd/badger/badger
-./badger
+cmd/domainbadger/domainbadger
+domainbadger
 
 # Other
 ./Makefile
+.DS_Store
+dist/
