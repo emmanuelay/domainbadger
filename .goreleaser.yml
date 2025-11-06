@@ -30,7 +30,7 @@ archives:
       - README.md
     format_overrides:
       - goos: windows
-      - formats: [ 'zip' ]
+        format: zip
 
 checksum:
   name_template: 'checksums.txt'
@@ -43,11 +43,27 @@ changelog:
       - '^test:'
       - '^chore:'
 
-homebrew_casks:
+brews:
   - repository:
       owner: emmanuelay
       name: homebrew-tap
     directory: Formula
+    
+    url_template: "https://github.com/emmanuelay/domainbadger/archive/{{ .Tag }}.tar.gz"
+    
     homepage: "https://github.com/emmanuelay/domainbadger"
     description: "CLI tool for domain information lookup"
     license: "MIT"
+    
+    dependencies:
+      - name: go
+        type: build
+    
+    install: |
+      system "go", "build", "-ldflags",
+             "-s -w -X main.version=#{version}",
+             "-o", bin/"domainbadger",
+             "./cmd/domainbadger"
+    
+    test: |
+      assert_match version.to_s, shell_output("#{bin}/domainbadger --version")
