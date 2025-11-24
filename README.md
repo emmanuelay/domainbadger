@@ -16,39 +16,43 @@ brew install emmanuelay/tap/domainbadger
 
 **Example**
 ```sh
-domainbadger -custom aoe -tld se,io,nu h_ll_ w_rld d_min_ti_n
+domainbadger -c aoe -t se,io,nu h_ll_ w_rld d_min_ti_n
 ```
 
+This will perform a WHOIS lookup on domain name combinations using selected top-level domains (`se`, `io`, and `nu`) and combinations of the characters `aoe` in three separate search terms `h_ll_`, `w_rld`, and `d_min_ti_n`. Underscore `_` is treated as the wildcard character and is replaced with different combinations of `aoe`.
 
-This will perform a whois lookup on domain name combinations using selected top-level domains (`se,io` and `nu`) and combinations of the characters `aoe` in three separate search terms `h_ll_`, `w_rld` and `d_min_ti_n`. Underscore `_` is treated as the wildcard character and is replaced with different combinations of `aoe`.
-
-`h_ll_` contains two wildcard characters, which means badger will combine `aoe` in all possible combinations using 2 character slots.(3 characters in 2 slots can be combined in 3^2 = 9 possible combinations (ex. `halla`, `hallo`, `halle` etc).
+`h_ll_` contains two wildcard characters, which means domainbadger will combine `aoe` in all possible combinations using 2 character slots (3 characters in 2 slots can be combined in 3^2 = 9 possible combinations: `halla`, `hallo`, `halle`, etc.).
 
 ## Usage
+```
+domainbadger [flags] <searchterms>
+
+Flags:
+  -A, --all             Use all possible characters (a-z, 0-9, -) (default true)
+  -a, --alpha           Use alphabetic range (a-z)
+  -n, --alphanum        Use alphanumeric range (a-z, 0-9)
+  -c, --custom string   Use a custom character range (ex. abc123)
+  -d, --delay int       Delay between lookup attempts, in milliseconds (default 500)
+  -h, --help            Help for domainbadger
+  -N, --numeric         Use numeric range (0-9)
+  -t, --tld string      TLDs to search. Use comma to add multiple (ex. com,org,net) (default "com")
+  -v, --version         Show version information
+```
+
+### Examples
 ```sh
-domainbadger <flags> [searchterms]
+# Search with custom characters
+domainbadger -c aoe -t se,io h_ll_ w_rld
 
--alpha
-	Alphabetic search (a-z)
+# Search with alphabetic characters
+domainbadger -a -t com,net c_t d_g
 
--alphanum
-	Alphanumeric search (a-z, 0-9)
+# Search with alphanumeric characters
+domainbadger -n -t io t_st
 
--numeric
-	Numeric search (0-9)
+# Search with numeric characters
+domainbadger -N -t com ap_ _pp
 
--custom [characterset]
-	Custom characterset search (limited to a-z,0-9 and -)
-	
--tld [comma-separated list of top-level domains]
-	Top-level domains
-
--delay
-	Delay in milliseconds
-
--help
-	This info.
-
--version
-	Displays version information
+# Show version
+domainbadger -v
 ```

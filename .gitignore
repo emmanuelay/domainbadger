@@ -1,8 +1,6 @@
 # Binary
-cmd/domainbadger/domainbadger
 domainbadger
 
 # Other
-./Makefile
 .DS_Store
 dist/
