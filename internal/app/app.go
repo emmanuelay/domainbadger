@@ -15,7 +15,7 @@ import (
 // Run ...
 func Run(ctx context.Context, cfg config.Configuration) {
 
-	domains := combinations.GenerateDomainCombinations(cfg.Characters, cfg.SearchPatterns, cfg.TLD)
+	domains := combinations.GenerateDomainCombinations(cfg.GetCharacters(), cfg.SearchPatterns, cfg.TLD)
 	totalLookups := len(domains)
 
 	fmt.Printf("Generated %d unique combinations\n", totalLookups)

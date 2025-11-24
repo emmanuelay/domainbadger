@@ -2,9 +2,7 @@ package config
 
 import (
 	"errors"
-	"flag"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
@@ -21,7 +19,6 @@ type Configuration struct {
 	Delay          int64
 	TLD            []string
 	SearchPatterns []string
-	Characters     string
 }
 
 func isValidDomain(domain string) bool {
@@ -53,27 +50,19 @@ func countWildcards(search string) int {
 	return len(matches)
 }
 
-func validateArguments(config Configuration) error {
+// ValidateConfiguration validates the provided configuration
+func ValidateConfiguration(config Configuration) error {
 
-	if config.AllCharacters {
-		config.Alpha = false
-		config.AlphaNumeric = false
-	}
-
-	if config.AlphaNumeric {
-		config.Alpha = false
-	}
-
+	// If custom range is specified, it takes priority
 	if len(config.CustomRange) > 0 {
-		config.Alpha = false
-		config.AlphaNumeric = false
-		config.AllCharacters = false
-
 		// Check custom range for invalid characters
 		if !isValidRange(config.CustomRange) {
 			return fmt.Errorf("invalid custom characters specified: '%v'", config.CustomRange)
 		}
 	}
+
+	// Priority order: custom > numeric > alphanum > alpha > all
+	// If user explicitly sets a specific flag, they don't want "all"
 
 	// Make sure TLDs have a corresponding nameserver
 	for _, tld := range config.TLD {
@@ -94,10 +83,6 @@ func validateArguments(config Configuration) error {
 	// Check searchpatterns for wildcard character (underscore)
 	// and invalid characters
 	for _, search := range config.SearchPatterns {
-		// if count := countWildcards(search); count == 0 {
-		// return fmt.Errorf("Invalid search pattern, no wildcards found: '%v", search)
-		// }
-
 		clean := strings.ReplaceAll(search, "_", "")
 		if len(clean) > 1 && !isValidDomain(clean) {
 			return fmt.Errorf("invalid search pattern, invalid domain: '%v", search)
@@ -107,66 +92,32 @@ func validateArguments(config Configuration) error {
 	return nil
 }
 
-func getCharacterRange(customRange string, alphaNum, num bool) string {
+// GetCharacters returns the character range based on configuration flags
+func (c *Configuration) GetCharacters() string {
 	const (
 		alphabet = "abcdefghijklmnopqrstuvwxyz"
 		numerals = "0123456789"
-		all      = alphabet + numerals
+		hyphen   = "-"
+		all      = alphabet + numerals + hyphen
 	)
 
-	if len(customRange) > 0 {
-		return customRange
+	// Priority order: custom > numeric > alphanum > alpha > all (default)
+	if len(c.CustomRange) > 0 {
+		return c.CustomRange
 	}
 
-	if alphaNum {
-		return all
-	}
-	if num {
+	if c.Numeric {
 		return numerals
 	}
 
-	// Default to alpha
-	return alphabet
-}
-
-// GetConfigurationFromArguments ...
-func GetConfigurationFromArguments(version, commit, date string) (Configuration, error) {
-
-	config := Configuration{}
-	var showVersion bool
-
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n")
-		fmt.Println("\tdomainbadger [parameters] <searchterms>")
-		fmt.Println("\n\t<searchterms> are expected to use underscore as wildcard")
-		fmt.Println("\nParameters:")
-
-		flag.PrintDefaults()
+	if c.AlphaNumeric {
+		return alphabet + numerals
 	}
 
-	flag.BoolVar(&showVersion, "version", false, "Show version information")
-	flag.BoolVar(&config.AllCharacters, "all", true, "Use all possible characters (a-z, 0-9, -)")
-	flag.BoolVar(&config.Alpha, "alpha", false, "Use alphabetic range (a-z)")
-	flag.BoolVar(&config.AlphaNumeric, "alphanum", false, "Use alphanumeric range (a-z, 0-9)")
-	flag.BoolVar(&config.Numeric, "numeric", false, "Use numeric range (0-9)")
-	flag.StringVar(&config.CustomRange, "custom", "", "Use a custom character range (ex. abc123)")
-	flag.Int64Var(&config.Delay, "delay", 500, "Delay between lookup attempts, in milliseconds")
-
-	var tlds string
-	flag.StringVar(&tlds, "tld", "com", "TLDs to search. Defaults to 'com'. Use comma to add multiple (ex. com,org,net).")
-
-	flag.Parse()
-
-	if showVersion {
-		fmt.Printf("domainbadger version %s\ncommit: %s\nbuilt: %s\n", version, commit, date)
-		os.Exit(0)
+	if c.Alpha {
+		return alphabet
 	}
 
-	config.TLD = strings.Split(tlds, ",")
-
-	config.Characters = getCharacterRange(config.CustomRange, config.AlphaNumeric, config.Numeric)
-
-	config.SearchPatterns = flag.Args() // Search mask to use (ex. 'se_rchm_sk' to use 2 wildcard ranges)
-
-	return config, validateArguments(config)
+	// Default to all characters (when no specific flag is set, or --all is specified)
+	return all
 }
